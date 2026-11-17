@@ -276,7 +276,7 @@ body.simple #toast{font-size:17px}
       <li>Host this file on HTTPS (e.g. GitHub Pages). Sign-in and NFC don't work from a <code>file://</code> page.</li>
       <li>At <a href="https://dashboard.yoto.dev" target="_blank" rel="noopener">dashboard.yoto.dev</a>, create an app with client type <b>Public</b>.</li>
       <li>Redirect URI: <code id="redir"></code> <button class="b s" id="btnCopyRedir">Copy</button></li>
-      <li>Tick and save the scopes <code>user:content:manage</code> and <code>offline_access</code>.</li>
+      <li>Tick and <b>save</b> the scopes <code>user:content:manage</code>, <code>user:content:view</code>, <code>user:icons:manage</code> and <code>offline_access</code>. All four are needed: the API checks each one by name.</li>
       <li>Put the Client ID into <code>CONFIG.clientId</code> at the top of the script, so the grandparent never sees this screen. You can also paste it below for testing.</li>
     </ol>
     <label class="f" for="inClient">Client ID (this browser only)</label>
@@ -314,10 +314,10 @@ body.simple #toast{font-size:17px}
    CONFIG — fill these in ONCE before hosting (Ziv)
    ===================================================================== */
 const CONFIG = {
-  clientId: 'tpc_nB5toj8UAFQGy7WJ2zKsaR',                 // Yoto Client ID (dashboard.yoto.dev). When set, the grandparent sees only the simple view.
+  clientId: '',                 // Yoto Client ID (dashboard.yoto.dev). When set, the grandparent sees only the simple view.
   appTitle: 'Yoto Card Studio', // e.g. "Grandma's Yoto Cards"
-  fromName: 'Maotki',          // used to sign the message to the parents
-  helperName: 'Matoki2',            // "ask … for help"
+  fromName: 'Grandma',          // used to sign the message to the parents
+  helperName: 'Ziv',            // "ask … for help"
   accountHint: "Use the parents' Yoto login.", // shown on the sign-in screen, e.g. "Use dana@example.com"
   parentsPhone: '',             // optional WhatsApp number, digits only with country code, e.g. 9725XXXXXXXX
 };
@@ -325,7 +325,10 @@ const CONFIG = {
 /* ================= constants & storage ================= */
 const API = 'https://api.yotoplay.com';
 const AUTH = 'https://login.yotoplay.com';
-const SCOPES = 'user:content:manage offline_access';
+// The API checks scopes literally: user:content:manage does NOT satisfy endpoints that ask for user:content:view,
+// so every scope is requested explicitly. All of them must also be ticked + saved on the app at dashboard.yoto.dev.
+const SCOPES = 'user:content:manage user:content:view user:icons:manage offline_access';
+const missingScopes = tok => { const s = jwtPayload(tok).scope; if (typeof s !== 'string') return []; const have = new Set(s.split(/\s+/)); return SCOPES.split(' ').filter(x => !have.has(x)); };
 const DEFAULT_ICON = 'aUm9i3ex3qqAMYBv-i-O-pYMKuMJGICtR3Vhf289u2Q'; // Yoto "MYO default" icon
 const MARK = 'Made with Yoto Card Studio';
 const BLANK_MARK = 'yoto-card-studio:blank';
@@ -418,7 +421,14 @@ async function api(path, { method = 'GET', json, body, headers = {} } = {}) {
   const r = await fetch(API + path, { method, headers: h, body });
   const txt = await r.text();
   let data; try { data = txt ? JSON.parse(txt) : null; } catch { data = txt; }
-  if (!r.ok) { const e = new Error(`${method} ${path.split('?')[0]} → ${r.status} ${typeof data === 'string' ? data : JSON.stringify(data)}`.slice(0, 300)); e.status = r.status; throw e; }
+  if (!r.ok) {
+    const raw = typeof data === 'string' ? data : JSON.stringify(data);
+    const msg = r.status === 403 && /scope/i.test(raw)
+      ? (isAdmin() ? `Missing permission: ${raw.slice(0, 200)}. Tick it at dashboard.yoto.dev → your app → Scopes → Save, then Sign out and Sign in again.`
+                   : `Yoto needs you to sign in again. Ask ${CONFIG.helperName} if this keeps happening.`)
+      : `${method} ${path.split('?')[0]} → ${r.status} ${raw}`.slice(0, 300);
+    const e = new Error(msg); e.status = r.status; throw e;
+  }
   return data;
 }
 
@@ -990,7 +1000,9 @@ function refreshUI() {
   $('#who').textContent = isAdmin() ? (t ? (p.email || p.name || 'Signed in') : 'Not signed in') : '';
   $('#btnAuth').textContent = t ? 'Sign out' : 'Sign in';
   const b = $('#authBanner');
+  const miss = t ? missingScopes(t.access_token) : [];
   if (!t) { b.style.display = 'block'; b.innerHTML = clientId() ? 'Sign in to the Yoto account to create playlists.' : 'First time? Open <b>Setup</b> to connect your Yoto developer app.'; }
+  else if (miss.length) { b.style.display = 'block'; b.innerHTML = `Your sign-in is missing permissions: <code>${esc(miss.join(' '))}</code>. Tick them at dashboard.yoto.dev → your app → Scopes → <b>Save</b>, then <b>Sign out</b> and <b>Sign in</b> again.`; }
   else b.style.display = 'none';
   $('#redir').textContent = redirectUri();
   $('#inClient').value = LS.get('clientId', '');
