@@ -1,0 +1,1109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#f45b24">
+<title>Yoto Card Studio</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" defer></script>
+<style>
+:root{
+  --bg:#f6f5f2; --panel:#ffffff; --ink:#1d1d1f; --muted:#6b6b70; --line:#e3e1dc;
+  --accent:#f45b24; --accent-ink:#ffffff; --ok:#1f8a4c; --warn:#b26a00; --bad:#c62828;
+  --chip:#f1efe9; --shadow:0 1px 2px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#141416; --panel:#1e1e21; --ink:#ececee; --muted:#9a9aa1; --line:#2e2e33;
+    --accent:#ff7043; --chip:#29292d; --shadow:none; }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body.simple{font-size:18px}
+body.simple #adminApp, body.admin #simpleApp, body.simple .adminOnly{display:none}
+header{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:5}
+header h1{font-size:17px;margin:0;flex:1}
+body.simple header h1{font-size:21px}
+header .who{font-size:13px;color:var(--muted)}
+nav{display:flex;gap:4px;padding:8px 16px;background:var(--panel);border-bottom:1px solid var(--line);overflow-x:auto}
+nav button{border:0;background:none;color:var(--muted);padding:8px 12px;border-radius:8px;font:inherit;cursor:pointer;white-space:nowrap}
+nav button.on{background:var(--chip);color:var(--ink);font-weight:600}
+main{max-width:860px;margin:0 auto;padding:16px}
+#simpleApp{max-width:560px;margin:0 auto;padding:16px}
+main > section, .scr{display:none}
+main > section.on, .scr.on{display:block}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px;box-shadow:var(--shadow)}
+.card h2{font-size:15px;margin:0 0 10px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.grow{flex:1;min-width:160px}
+label.f{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px}
+body.simple label.f{font-size:16px}
+input[type=text],input[type=search],select,textarea{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
+body.simple input[type=text]{padding:14px;font-size:20px;border-radius:12px}
+button.b{border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:8px 12px;border-radius:8px;font:inherit;cursor:pointer}
+button.b:hover{border-color:var(--muted)}
+button.p{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+button.s{padding:4px 8px;font-size:13px}
+button:disabled{opacity:.5;cursor:not-allowed}
+a.b{text-decoration:none;display:inline-block}
+.big{display:block;width:100%;padding:16px;font:inherit;font-size:19px;font-weight:600;border-radius:14px;margin:10px 0;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer;text-align:center}
+.big.p{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+button.lnk{background:none;border:0;color:var(--muted);font:inherit;padding:6px 0;cursor:pointer}
+.muted{color:var(--muted)} .small{font-size:13px}
+body.simple .small{font-size:15px}
+.ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--bad)}
+code,.mono{font-family:ui-monospace,Consolas,monospace;font-size:13px;background:var(--chip);padding:1px 5px;border-radius:5px;word-break:break-all}
+.drop{border:2px dashed var(--line);border-radius:12px;padding:22px;text-align:center;color:var(--muted);cursor:pointer}
+.drop.hover{border-color:var(--accent);color:var(--ink)}
+.tracks{list-style:none;margin:12px 0 0;padding:0}
+.tracks li{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line)}
+.tracks li .n{width:22px;text-align:right;color:var(--muted);font-size:13px}
+.tracks li input{flex:1;min-width:0}
+body.simple .tracks li input{font-size:17px;padding:10px}
+.tracks li select{width:auto;flex:none;padding:6px 4px;font-size:13px}
+body.simple .tracks li select{display:none}
+.tracks li .st{font-size:12px;color:var(--muted);min-width:64px;text-align:right}
+.ico{width:36px;height:36px;border-radius:6px;border:1px solid var(--line);background:#000;padding:2px;cursor:pointer;flex:none;display:grid;place-items:center;color:#fff}
+body.simple .ico{width:48px;height:48px}
+.ico img{width:100%;height:100%;image-rendering:pixelated}
+.ico.none{background:var(--chip);color:var(--muted);font-size:11px}
+.cover{width:72px;height:72px;border-radius:8px;object-fit:cover;border:1px solid var(--line);background:var(--chip)}
+.log{font-family:ui-monospace,Consolas,monospace;font-size:12px;max-height:180px;overflow:auto;background:var(--chip);border-radius:8px;padding:8px;white-space:pre-wrap;margin-top:10px;display:none}
+.steps{margin:0;padding-left:20px} .steps li{margin:6px 0}
+.bigsteps{padding-left:24px} .bigsteps li{margin:14px 0;font-size:19px}
+.banner{border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:14px}
+body.simple .banner{font-size:17px}
+.banner.warn{background:rgba(178,106,0,.12);color:var(--ink);border:1px solid rgba(178,106,0,.35)}
+.banner.info{background:var(--chip)}
+.lib,.slist{list-style:none;margin:0;padding:0}
+.lib li{display:flex;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+.slist li{display:flex;gap:8px;align-items:center;padding:12px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+.slist .t{flex:1;font-weight:600;min-width:150px}
+.slist button{font-size:16px;padding:10px 12px}
+.nfcstat{font-size:14px;margin-top:10px;min-height:20px}
+.bigstatus{font-size:20px;line-height:1.5;min-height:110px;padding:18px;border-radius:14px;background:var(--chip);margin:14px 0}
+.bigstatus small{font-size:16px;display:block;margin-top:8px;color:var(--ink)}
+.pills{display:flex;gap:8px;margin-top:8px}
+.pill{flex:1;padding:10px;border-radius:10px;background:var(--chip);text-align:center;font-size:15px;border:2px solid transparent}
+.pill.on{border-color:var(--accent)} .pill.done{background:rgba(31,138,76,.15)}
+.bar{height:12px;background:var(--chip);border-radius:6px;overflow:hidden;margin-top:10px}
+.bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
+details{margin:12px 0} summary{cursor:pointer;color:var(--muted)}
+dialog{border:1px solid var(--line);border-radius:14px;background:var(--panel);color:var(--ink);padding:0;width:min(620px,94vw);max-height:86vh}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+.dlg-h{display:flex;gap:8px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.dlg-b{padding:12px 14px;overflow:auto;max-height:62vh}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:8px}
+.grid button{border:1px solid var(--line);border-radius:8px;background:var(--bg);padding:6px 4px;cursor:pointer;color:var(--ink);font-size:10px;line-height:1.2}
+.grid button img{width:40px;height:40px;image-rendering:pixelated;background:#000;border-radius:4px;display:block;margin:0 auto 4px}
+.grid button:hover{border-color:var(--accent)}
+#toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:92vw;z-index:20}
+body.simple #toast{font-size:17px}
+#toast.on{opacity:1}
+@media (max-width:560px){ .tracks li .st{display:none} header .who{display:none} }
+</style>
+</head>
+<body class="simple">
+<header>
+  <h1 id="appTitle">Yoto Card Studio</h1>
+  <span class="who" id="who"></span>
+  <button class="b s adminOnly" id="btnAuth">Sign in</button>
+</header>
+
+<!-- ===================================================== SIMPLE (grandparent) ===================================================== -->
+<div id="simpleApp">
+
+  <section class="scr on" id="s-home">
+    <button class="big p" id="sNew">➕ Make a new card</button>
+    <button class="big" id="sCopyGo">📲 Copy onto a blank card</button>
+    <h3 style="margin:26px 0 6px">My cards</h3>
+    <ul class="slist" id="sCards"></ul>
+    <p class="small muted" id="sHomeNote"></p>
+  </section>
+
+  <section class="scr" id="s-signin">
+    <button class="lnk" data-go="home">← Back</button>
+    <h2>Sign in to Yoto</h2>
+    <p>To make cards, this page needs the family's Yoto account.</p>
+    <p class="banner info" id="sAccountHint"></p>
+    <button class="big p" id="sSignIn">Sign in</button>
+  </section>
+
+  <section class="scr" id="s-build">
+    <button class="lnk" data-go="home">← Back</button>
+    <label class="f" for="sTitle">Card name</label>
+    <input type="text" id="sTitle" class="titlein" placeholder="e.g. Songs from Grandma">
+    <button class="big" id="sAdd">🎵 Add songs</button>
+    <input type="file" id="sFiles" multiple accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.flac,.zip,application/zip" hidden>
+    <p class="small muted" style="margin:4px 0">Tip: tap a picture to change it.</p>
+    <ul class="tracks tracklist" id="sTrackList"></ul>
+    <details>
+      <summary>More options</summary>
+      <label style="display:block;margin:10px 0"><input type="checkbox" class="opt-shuffle"> Play songs in random order</label>
+      <label style="display:block;margin:10px 0"><input type="checkbox" class="opt-start"> Always start from the first song</label>
+    </details>
+    <button class="big p" id="sSave">💾 Save card</button>
+    <div id="sProgress" hidden>
+      <div class="bar"><i id="sBar"></i></div>
+      <p id="sProgText" class="small"></p>
+    </div>
+  </section>
+
+  <section class="scr" id="s-saved">
+    <h2 class="ok">✓ “<span class="sT"></span>” is saved</h2>
+    <p>Now put it on the orange Yoto card:</p>
+    <ol class="bigsteps">
+      <li>Pick up your <b>phone</b> and open the <b>Yoto</b> app.</li>
+      <li>Tap <b>Library</b> → <b>Playlists</b> → <b>“<span class="sT"></span>”</b>.</li>
+      <li>Scroll down, tap <b>Link to a card</b> → <b>Use your phone</b>, and hold the <b>orange Yoto card</b> to the back of the phone.</li>
+      <li>Then open <b id="sAppName2">this page</b> on your phone and tap <b>Copy onto a blank card</b>.</li>
+    </ol>
+    <button class="big p" id="sSavedCopy">📲 I've done that, copy now</button>
+    <button class="big" data-go="home">Home</button>
+  </section>
+
+  <section class="scr" id="s-copy">
+    <button class="lnk" id="cBack">← Back</button>
+    <h2 style="margin:6px 0">Copy onto a blank card</h2>
+    <div class="pills"><div class="pill" id="cP1">1 · Orange card</div><div class="pill" id="cP2">2 · Blank card</div></div>
+    <div class="bigstatus" id="cStatus"></div>
+    <button class="big p" id="cStart">▶ Start</button>
+    <button class="big" id="cAgain" hidden>Copy onto another blank card</button>
+    <button class="big" id="cTell" hidden>💬 Tell the parents</button>
+  </section>
+
+  <section class="scr" id="s-tell">
+    <button class="lnk" data-go="home">← Back</button>
+    <h2>Tell the parents</h2>
+    <p class="small">They need to do one thing when the card arrives. This message explains it:</p>
+    <textarea id="tMsg" rows="9"></textarea>
+    <button class="big p" id="tWa">Send on WhatsApp</button>
+    <button class="big" id="tShare" hidden>Share…</button>
+    <button class="big" id="tCopy">Copy the message</button>
+  </section>
+</div>
+
+<!-- ===================================================== ADMIN ===================================================== -->
+<div id="adminApp">
+<nav>
+  <button data-tab="playlist" class="on">1 · Playlist</button>
+  <button data-tab="nfc">2 · NFC cards</button>
+  <button data-tab="setup">Setup</button>
+  <button id="btnSimpleView" title="Switch to the grandparent view">👵 Simple view</button>
+</nav>
+<main>
+
+<section id="tab-playlist" class="on">
+  <div id="authBanner" class="banner warn" style="display:none"></div>
+  <div class="card">
+    <div class="row">
+      <div class="grow">
+        <label class="f" for="selPlaylist">Playlist</label>
+        <select id="selPlaylist"><option value="">➕ New playlist</option></select>
+      </div>
+      <button class="b" id="btnReloadPl" style="margin-top:22px">↻</button>
+    </div>
+    <label class="f" for="inTitle">Title</label>
+    <input type="text" id="inTitle" class="titlein" placeholder="e.g. Bedtime songs">
+    <label class="f">Cover image (optional)</label>
+    <div class="row">
+      <img id="coverPrev" class="cover" alt="">
+      <input type="file" id="inCover" accept="image/*" hidden>
+      <button class="b s" id="btnCover">Choose image</button>
+      <button class="b s" id="btnCoverClear">Remove</button>
+    </div>
+    <label class="f">Playback</label>
+    <div class="row small">
+      <label><input type="checkbox" class="opt-shuffle"> Shuffle tracks each time played</label>
+      <label><input type="checkbox" class="opt-start"> Always play from start</label>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Tracks</h2>
+    <div class="drop" id="drop">Drop MP3 / M4A files or a card-kit .zip here, or tap to choose
+      <input type="file" id="inAudio" accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.flac,.zip,application/zip" multiple hidden>
+    </div>
+    <ul class="tracks tracklist" id="trackList"></ul>
+    <div class="row" style="margin-top:12px">
+      <button class="b" id="btnMatch">✨ Auto-match icons</button>
+      <span class="grow"></span>
+      <button class="b p" id="btnSave">Save to Yoto</button>
+    </div>
+    <div class="log" id="log"></div>
+  </div>
+</section>
+
+<section id="tab-nfc">
+  <div id="nfcBanner" class="banner warn" style="display:none"></div>
+  <div class="card">
+    <h2>Prepare blank cards (do this before handing them over)</h2>
+    <p class="small muted" style="margin:0 0 8px">Writes a small “blank” marker onto each card and checks that it writes. The simple view only accepts empty or marked cards, which protects real Yoto cards. If a card fails, format it once in <b>NFC Tools</b> (see below), then prepare it again.</p>
+    <div class="row"><button class="b p" id="btnPrep">🧰 Start preparing blanks</button><button class="b" id="btnPrepStop">Stop</button></div>
+    <div class="nfcstat" id="prepStat"></div>
+  </div>
+  <div class="card">
+    <h2>Read the MYO card</h2>
+    <div class="row">
+      <button class="b p" id="btnRead">📖 Read MYO card</button>
+      <button class="b" id="btnStop">Stop</button>
+    </div>
+    <div class="nfcstat" id="readStat"></div>
+  </div>
+  <div class="card">
+    <h2>Card library <span class="muted small">(stored on this device only)</span></h2>
+    <label class="row small" style="margin-bottom:8px"><input type="checkbox" id="chkOverwrite"> Allow overwriting a card that already has data</label>
+    <ul class="lib" id="libList"></ul>
+    <div class="nfcstat" id="writeStat"></div>
+  </div>
+  <div class="card small">
+    <h2>How copies work</h2>
+    <ol class="steps">
+      <li>Yoto app: playlist → <i>Link to a card</i> → official MYO / orange card.</li>
+      <li>Read the MYO card here, then write the link to a blank card.</li>
+      <li>A copy only plays after <b>each player</b> has downloaded the playlist. Play it once on the player (from the card or from the Yoto app, with the player on Wi-Fi), then leave the player charging. To check: Yoto app → Settings → player → <i>Audio Download Status</i>.</li>
+      <li>After you edit a playlist, copies need no rewrite, but each player has to download the new tracks again.</li>
+    </ol>
+    <h2 style="margin-top:14px">If writing fails</h2>
+    <p class="muted" style="margin:0 0 6px">“Not supported” usually means the blank isn't NDEF-formatted (common with MIFARE Ultralight EV1). Fix it in <b>NFC Tools</b>: <i>Other → Advanced NFC commands</i>, send:</p>
+    <code>A2:03:E1:10:06:00,A2:04:03:04:D8:00,A2:05:00:00:FE:00</code>
+    <p class="muted" style="margin:6px 0 0">Never lock a card (make read-only).</p>
+  </div>
+</section>
+
+<section id="tab-setup">
+  <div class="card">
+    <h2>One-time setup</h2>
+    <ol class="steps">
+      <li>Host this file on HTTPS (e.g. GitHub Pages). Sign-in and NFC don't work from a <code>file://</code> page.</li>
+      <li>At <a href="https://dashboard.yoto.dev" target="_blank" rel="noopener">dashboard.yoto.dev</a>, create an app with client type <b>Public</b>.</li>
+      <li>Redirect URI: <code id="redir"></code> <button class="b s" id="btnCopyRedir">Copy</button></li>
+      <li>Tick and save the scopes <code>user:content:manage</code> and <code>offline_access</code>.</li>
+      <li>Put the Client ID into <code>CONFIG.clientId</code> at the top of the script, so the grandparent never sees this screen. You can also paste it below for testing.</li>
+    </ol>
+    <label class="f" for="inClient">Client ID (this browser only)</label>
+    <div class="row"><input type="text" id="inClient" class="grow" placeholder="Client ID from dashboard.yoto.dev"><button class="b p" id="btnSaveClient">Save</button></div>
+    <div class="small" id="envCheck" style="margin-top:12px"></div>
+  </div>
+  <div class="card small">
+    <h2>Data on this device</h2>
+    <p class="muted" style="margin:0 0 8px">Yoto tokens and saved card links stay in this browser's local storage. The card links work like keys, so don't share them.</p>
+    <button class="b s" id="btnForget">Sign out + clear tokens</button>
+    <button class="b s" id="btnClearIcons">Clear icon cache</button>
+  </div>
+</section>
+</main>
+</div>
+
+<dialog id="dlgIcon">
+  <div class="dlg-h">
+    <input type="search" id="icoSearch" placeholder="Search pictures (English: cat, moon, car…)" class="grow">
+    <a class="b s adminOnly" id="icoYi" href="https://www.yotoicons.com/icons" target="_blank" rel="noopener" title="Community icons. Download a PNG there, then use Upload image">yotoicons ↗</a>
+    <button class="b s" id="icoUpload">Upload image</button>
+    <input type="file" id="icoFile" accept="image/png,image/gif,image/jpeg,image/webp" hidden>
+    <button class="b s" id="icoClose">✕</button>
+  </div>
+  <div class="dlg-b">
+    <div class="small muted" id="icoHint" style="margin-bottom:8px"></div>
+    <div class="grid" id="icoGrid"></div>
+  </div>
+</dialog>
+<div id="toast"></div>
+
+<script>
+'use strict';
+/* =====================================================================
+   CONFIG — fill these in ONCE before hosting (Ziv)
+   ===================================================================== */
+const CONFIG = {
+  clientId: '',                 // Yoto Client ID (dashboard.yoto.dev). When set, the grandparent sees only the simple view.
+  appTitle: 'Yoto Card Studio', // e.g. "Grandma's Yoto Cards"
+  fromName: 'Grandma',          // used to sign the message to the parents
+  helperName: 'Ziv',            // "ask … for help"
+  accountHint: "Use the parents' Yoto login.", // shown on the sign-in screen, e.g. "Use dana@example.com"
+  parentsPhone: '',             // optional WhatsApp number, digits only with country code, e.g. 9725XXXXXXXX
+};
+
+/* ================= constants & storage ================= */
+const API = 'https://api.yotoplay.com';
+const AUTH = 'https://login.yotoplay.com';
+const SCOPES = 'user:content:manage offline_access';
+const DEFAULT_ICON = 'aUm9i3ex3qqAMYBv-i-O-pYMKuMJGICtR3Vhf289u2Q'; // Yoto "MYO default" icon
+const MARK = 'Made with Yoto Card Studio';
+const BLANK_MARK = 'yoto-card-studio:blank';
+const PUBLIC_ICON_URL = id => 'https://card-content.yotoplay.com/yoto/' + id;
+const LS = {
+  get(k, d) { try { const v = localStorage.getItem('ycs.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem('ycs.' + k, JSON.stringify(v)); return true; } catch { return false; } },
+  del(k) { try { localStorage.removeItem('ycs.' + k); } catch {} }
+};
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const redirectUri = () => location.origin + location.pathname;
+const webOk = () => window.isSecureContext && /^https?:$/.test(location.protocol);
+const clientId = () => CONFIG.clientId || LS.get('clientId', '');
+let toastT;
+function toast(msg, ms = 3500) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), ms); }
+function log(msg) { const l = $('#log'); l.style.display = 'block'; l.textContent += msg + '\n'; l.scrollTop = l.scrollHeight; }
+
+/* ================= mode ================= */
+(function pickMode() {
+  const q = new URLSearchParams(location.search);
+  if (q.get('admin') === '1') LS.set('admin', true);
+  if (q.get('admin') === '0') LS.set('admin', false);
+  const admin = !CONFIG.clientId || LS.get('admin', false);
+  document.body.className = admin ? 'admin' : 'simple';
+})();
+const isAdmin = () => document.body.classList.contains('admin');
+
+/* ================= auth (OAuth2 PKCE) ================= */
+function b64url(bytes) { let s = ''; bytes.forEach(b => s += String.fromCharCode(b)); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+async function pkcePair() {
+  const verifier = b64url(crypto.getRandomValues(new Uint8Array(32)));
+  const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+  return { verifier, challenge: b64url(new Uint8Array(hash)) };
+}
+function jwtPayload(t) { try { const p = t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'); return JSON.parse(atob(p + '==='.slice((p.length + 3) % 4))); } catch { return {}; } }
+const isSignedIn = () => !!LS.get('tokens', null);
+
+async function signIn() {
+  if (!clientId()) { toast('Add the Client ID first'); showTab('setup'); return; }
+  if (!webOk()) { toast('This page must be opened from its web address, not as a file'); return; }
+  const { verifier, challenge } = await pkcePair();
+  const state = b64url(crypto.getRandomValues(new Uint8Array(16)));
+  sessionStorage.setItem('ycs.pkce', JSON.stringify({ verifier, state }));
+  const p = new URLSearchParams({ audience: API, scope: SCOPES, response_type: 'code', client_id: clientId(),
+    code_challenge: challenge, code_challenge_method: 'S256', redirect_uri: redirectUri(), state });
+  location.href = AUTH + '/authorize?' + p;
+}
+function signOut() { LS.del('tokens'); refreshUI(); toast('Signed out'); }
+
+async function handleCallback() {
+  const q = new URLSearchParams(location.search);
+  if (!q.has('code') && !q.has('error')) return;
+  history.replaceState(null, '', redirectUri());
+  if (q.get('error')) { toast('Sign-in failed: ' + (q.get('error_description') || q.get('error')), 8000); return; }
+  let saved = null; try { saved = JSON.parse(sessionStorage.getItem('ycs.pkce') || 'null'); } catch {}
+  sessionStorage.removeItem('ycs.pkce');
+  if (!saved || saved.state !== q.get('state')) { toast('Sign-in didn’t finish. Please try again.'); return; }
+  const r = await fetch(AUTH + '/oauth/token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ grant_type: 'authorization_code', client_id: clientId(), code_verifier: saved.verifier, code: q.get('code'), redirect_uri: redirectUri() }) });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok || !d.access_token) { toast('Sign-in failed: ' + (d.error_description || d.error || r.status), 8000); return; }
+  LS.set('tokens', { access_token: d.access_token, refresh_token: d.refresh_token || null });
+  toast('Signed in ✓');
+}
+
+let refreshing = null;
+async function accessToken() {
+  const t = LS.get('tokens', null);
+  if (!t) throw new Error('Not signed in');
+  const exp = (jwtPayload(t.access_token).exp || 0) * 1000;
+  if (Date.now() < exp - 60000) return t.access_token;
+  if (!t.refresh_token) { LS.del('tokens'); refreshUI(); throw new Error('Please sign in to Yoto again.'); }
+  if (!refreshing) refreshing = (async () => {
+    const r = await fetch(AUTH + '/oauth/token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ grant_type: 'refresh_token', client_id: clientId(), refresh_token: t.refresh_token }) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.access_token) { LS.del('tokens'); refreshUI(); throw new Error('Please sign in to Yoto again.'); }
+    LS.set('tokens', { access_token: d.access_token, refresh_token: d.refresh_token || t.refresh_token }); // refresh tokens are single-use
+    return d.access_token;
+  })().finally(() => { refreshing = null; });
+  return refreshing;
+}
+
+async function api(path, { method = 'GET', json, body, headers = {} } = {}) {
+  const h = { Authorization: 'Bearer ' + await accessToken(), Accept: 'application/json', ...headers };
+  if (json !== undefined) { h['Content-Type'] = 'application/json'; body = JSON.stringify(json); }
+  const r = await fetch(API + path, { method, headers: h, body });
+  const txt = await r.text();
+  let data; try { data = txt ? JSON.parse(txt) : null; } catch { data = txt; }
+  if (!r.ok) { const e = new Error(`${method} ${path.split('?')[0]} → ${r.status} ${typeof data === 'string' ? data : JSON.stringify(data)}`.slice(0, 300)); e.status = r.status; throw e; }
+  return data;
+}
+
+/* ================= state ================= */
+const S = {
+  cardId: null, base: null, title: '',
+  cover: { file: null, url: null, preview: null },
+  tracks: [],            // {uid,title,file,trackUrl,type,meta,icon:{mediaId,url,pending},iconFile,onEnd,raw,status}
+  shuffle: false, fromStart: false,
+  playlists: [], publicIcons: null, myIcons: null, pickerFor: null,
+  lastTitle: null
+};
+let uidSeq = 1;
+
+/* ================= helpers: titles, audio, kits (pure) ================= */
+const AUDIO_RE = /\.(mp3|m4a|aac|wav|ogg|flac)$/i, IMG_RE = /\.(png|gif|jpe?g|webp)$/i;
+const baseName = n => String(n).split('/').pop();
+const stemName = n => baseName(n).replace(/\.[^.]+$/, '').toLowerCase();
+function titleFromFile(name) {
+  return name.replace(/\.[a-z0-9]{2,5}$/i, '').replace(/^\s*\d{1,3}\s*[-_.)]\s*/, '').replace(/[_]+/g, ' ').replace(/\s+/g, ' ').trim() || name;
+}
+function audioType(f) {
+  if (f.type) return f.type;
+  const ext = (f.name.split('.').pop() || '').toLowerCase();
+  return { mp3: 'audio/mpeg', m4a: 'audio/mp4', aac: 'audio/aac', wav: 'audio/wav', ogg: 'audio/ogg', flac: 'audio/flac' }[ext] || 'application/octet-stream';
+}
+const imgType = n => ({ png: 'image/png', gif: 'image/gif', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp' }[(n.split('.').pop() || '').toLowerCase()] || 'image/png');
+const fmtSize = b => b ? (b / 1048576).toFixed(1) + ' MB' : '';
+const fmtDur = s => s ? Math.floor(s / 60) + ':' + String(Math.round(s % 60)).padStart(2, '0') : '';
+// Card kit (.zip): audio files (sorted by name), optional cover.(jpg|png), optional icon per track named like the
+// audio file (e.g. 01-twinkle.mp3 + 01-twinkle.png), optional kit.json {title, shuffle, playFromStart, tracks:[{file,title,icon}]}
+function planKit(names, manifest, zipName) {
+  names = names.filter(n => !/(^|\/)(__MACOSX\/|\.)/.test(n));
+  const audio = names.filter(n => AUDIO_RE.test(n)).sort((a, b) => baseName(a).localeCompare(baseName(b), undefined, { numeric: true }));
+  const imgs = names.filter(n => IMG_RE.test(n));
+  const cover = imgs.find(n => stemName(n) === 'cover') || null;
+  const iconFor = a => imgs.find(n => n !== cover && stemName(n) === stemName(a)) || null;
+  let tracks;
+  if (manifest && Array.isArray(manifest.tracks) && manifest.tracks.length) {
+    tracks = manifest.tracks.map(t => {
+      const a = audio.find(n => baseName(n) === t.file || n === t.file); if (!a) return null;
+      const ic = String(t.icon || '');
+      const isYoto = /^yoto:/.test(ic);
+      return { audio: a, title: t.title || titleFromFile(baseName(a)),
+        iconName: isYoto ? null : (ic ? (imgs.find(n => baseName(n) === ic || n === ic) || null) : iconFor(a)),
+        iconMediaId: isYoto ? ic.replace(/^yoto:#?/, '') : null };
+    }).filter(Boolean);
+  } else tracks = audio.map(a => ({ audio: a, title: titleFromFile(baseName(a)), iconName: iconFor(a), iconMediaId: null }));
+  const title = (manifest && manifest.title) || (zipName ? titleFromFile(baseName(zipName).replace(/\.zip$/i, '')) : '');
+  return { title, tracks, cover, shuffle: !!(manifest && manifest.shuffle), fromStart: !!(manifest && manifest.playFromStart) };
+}
+
+/* ================= icon matching (pure) ================= */
+const STOP = new Set('the a an of and to in on for with my your our by is it at from feat ft remix version official audio lyrics video mp3 track song part live edit mix'.split(' '));
+function words(s) {
+  return String(s || '').toLowerCase().replace(/\.[a-z0-9]{2,4}$/, '').replace(/[_\-.,!?:;'"()\[\]]+/g, ' ')
+    .split(/\s+/).filter(w => w.length > 1 && !STOP.has(w) && !/^\d+$/.test(w));
+}
+function stem(w) { return w.length > 4 ? w.replace(/ies$/, 'y').replace(/(es|s)$/, '') : w.replace(/s$/, ''); }
+function indexIcons(list) { return list.map(i => ({ ...i, _w: new Set([...words(i.title), ...(i.publicTags || []).flatMap(words)].map(stem)) })); }
+function scoreIcon(icon, ws) {
+  let s = 0;
+  for (const w of ws) {
+    const sw = stem(w);
+    if (icon._w.has(sw)) { s += 3; continue; }
+    for (const x of icon._w) { if (x.length > 3 && sw.length > 3 && (x.startsWith(sw) || sw.startsWith(x))) { s += 1; break; } }
+  }
+  return s;
+}
+function matchIcons(text, list, n = 24) {
+  const ws = words(text); if (!ws.length || !list) return [];
+  return list.map(i => ({ i, s: scoreIcon(i, ws) })).filter(x => x.s > 0).sort((a, b) => b.s - a.s).slice(0, n).map(x => x.i);
+}
+async function loadPublicIcons(force) {
+  if (S.publicIcons && !force) return S.publicIcons;
+  const cached = !force && LS.get('publicIcons', null);
+  let list;
+  if (cached && Date.now() - cached.at < 7 * 864e5) list = cached.list;
+  else {
+    const d = await api('/media/displayIcons/user/yoto');
+    list = (d.displayIcons || []).map(i => ({ mediaId: i.mediaId, title: i.title || '', publicTags: i.publicTags || [], url: i.url || PUBLIC_ICON_URL(i.mediaId) }));
+    LS.set('publicIcons', { at: Date.now(), list });
+  }
+  S.publicIcons = indexIcons(list);
+  return S.publicIcons;
+}
+async function loadMyIcons() {
+  if (S.myIcons) return S.myIcons;
+  try { const d = await api('/media/displayIcons/user/me'); S.myIcons = (d.displayIcons || []).map(i => ({ mediaId: i.mediaId, title: i.title || 'my icon', url: i.url })); }
+  catch { S.myIcons = []; }
+  return S.myIcons;
+}
+function iconUrlFor(mediaId) {
+  const f = (S.publicIcons || []).find(i => i.mediaId === mediaId) || (S.myIcons || []).find(i => i.mediaId === mediaId);
+  return f ? f.url : PUBLIC_ICON_URL(mediaId);
+}
+
+/* ================= content builder (pure) ================= */
+function clean(o) { Object.keys(o).forEach(k => o[k] === undefined && delete o[k]); return o; }
+function buildContent(st) {
+  const chapters = st.tracks.map((t, i) => {
+    const key = String(i + 1).padStart(2, '0');
+    const icon = 'yoto:#' + (t.icon && t.icon.mediaId || DEFAULT_ICON);
+    if (t.raw && Array.isArray(t.raw.tracks) && t.raw.tracks.length > 1) {
+      return { ...t.raw, key, title: t.title, overlayLabel: String(i + 1), display: { ...(t.raw.display || {}), icon16x16: icon } };
+    }
+    const m = t.meta || {};
+    const base = t.raw && t.raw.tracks && t.raw.tracks[0] ? { ...t.raw.tracks[0] } : {};
+    const ev = { ...(base.events || {}) };
+    if (t.onEnd === 'stop' || t.onEnd === 'repeat') ev.onEnd = { cmd: t.onEnd }; else delete ev.onEnd;
+    const track = clean({ ...base, key, title: t.title, trackUrl: t.trackUrl, type: t.type || base.type || 'audio',
+      format: m.format ?? base.format, duration: m.duration ?? base.duration, fileSize: m.fileSize ?? base.fileSize,
+      channels: m.channels ?? base.channels, overlayLabel: String(i + 1), display: { icon16x16: icon },
+      events: Object.keys(ev).length ? ev : undefined });
+    return clean({ ...(t.raw ? { ...t.raw, tracks: undefined } : {}), key, title: t.title, overlayLabel: String(i + 1), tracks: [track], display: { icon16x16: icon } });
+  });
+  const dur = st.tracks.reduce((a, t) => a + ((t.meta && t.meta.duration) || 0), 0);
+  const size = st.tracks.reduce((a, t) => a + ((t.meta && t.meta.fileSize) || 0), 0);
+  const baseMeta = (st.base && st.base.metadata) || {};
+  const metadata = { ...baseMeta, media: { ...(baseMeta.media || {}), duration: dur || undefined, fileSize: size || undefined, readableFileSize: size ? Math.round(size / 1048576 * 10) / 10 : undefined } };
+  clean(metadata.media);
+  if (st.cover.url) metadata.cover = { ...(baseMeta.cover || {}), imageL: st.cover.url };
+  else if (st.cover.removed && metadata.cover) delete metadata.cover;
+  if (!st.cardId && !metadata.note) metadata.note = MARK;
+  const baseContent = (st.base && st.base.content) || {};
+  const config = { ...(baseContent.config || {}) };
+  const n = chapters.length;
+  if (st.shuffle && n > 1) config.shuffle = [{ start: 0, end: n - 1, limit: n }]; else delete config.shuffle;
+  if (st.fromStart) config.resumeTimeout = 0; else if (config.resumeTimeout === 0) delete config.resumeTimeout;
+  const content = { ...baseContent, chapters };
+  if (Object.keys(config).length) content.config = config; else delete content.config;
+  const body = { title: st.title, content, metadata };
+  if (st.cardId) body.cardId = st.cardId;
+  return body;
+}
+function parseCard(card) {
+  const chapters = (card.content && card.content.chapters) || [];
+  return chapters.map(ch => {
+    const tr = (ch.tracks || [])[0] || {};
+    const iconRef = (tr.display && tr.display.icon16x16) || (ch.display && ch.display.icon16x16) || '';
+    const mediaId = iconRef.startsWith('yoto:#') ? iconRef.slice(6) : null;
+    const endCmd = tr.events && tr.events.onEnd && tr.events.onEnd.cmd;
+    return { uid: uidSeq++, title: ch.title || tr.title || 'Untitled', file: null, trackUrl: tr.trackUrl, type: tr.type,
+      meta: { duration: tr.duration, fileSize: tr.fileSize, format: tr.format, channels: tr.channels },
+      icon: mediaId ? { mediaId, url: null } : null, onEnd: endCmd === 'stop' || endCmd === 'repeat' ? endCmd : '', raw: ch, status: (ch.tracks || []).length > 1 ? `${ch.tracks.length} tracks` : '' };
+  });
+}
+function parentsMessage(title, from) {
+  const t = title ? `“${title}”` : 'the new card';
+  return `A new Yoto card is on its way: ${t} 💛\n\n` +
+    `When it arrives, before the kids use it:\n` +
+    `1. Open the Yoto app → Library → Playlists → ${t}\n` +
+    `2. Play it on each of the kids' Yoto players for a few seconds (player on Wi-Fi).\n` +
+    `3. Leave the player charging for a while so the songs download.\n\n` +
+    `After that the card works, even without Wi-Fi. If songs are added later, do this again.\n— ${from}`;
+}
+
+/* ================= NFC guards (pure) ================= */
+function parseYotoUrl(u) {
+  try { const x = new URL(u); if (!/(^|\.)yoto\.io$/i.test(x.hostname)) return null; const id = x.pathname.replace(/^\/+/, '').split('/')[0]; return id ? { cardId: id, hasToken: !!x.search } : null; } catch { return null; }
+}
+const maskUrl = u => { try { const x = new URL(u); return x.host + x.pathname + (x.search ? '?•••••' : ''); } catch { return '•••'; } };
+// Decide whether a tapped card is safe to write the copy onto.
+function checkTarget({ serial, masterSerial, records, masterUrl }) {
+  if (serial && masterSerial && serial === masterSerial) return 'same-card';
+  const recs = (records || []).filter(r => r.type !== 'empty');
+  if (!recs.length) return 'ok';
+  if (recs.length === 1 && recs[0].type === 'text' && recs[0].text === BLANK_MARK) return 'ok';
+  const isUrl = r => r.type === 'url' || r.type === 'absolute-url';
+  if (recs.every(r => isUrl(r) && r.text === masterUrl)) return 'ok';           // an earlier copy of the same card
+  if (recs.some(r => isUrl(r) && parseYotoUrl(r.text || ''))) return 'other-yoto';
+  return 'has-data';
+}
+
+/* ================= playlist logic ================= */
+function setTitle(v) { S.title = v; $$('.titlein').forEach(i => { if (i.value !== v) i.value = v; }); }
+function setOpts() { $$('.opt-shuffle').forEach(c => c.checked = S.shuffle); $$('.opt-start').forEach(c => c.checked = S.fromStart); }
+function renderTracks() {
+  const html = !S.tracks.length ? `<li class="muted small">${isAdmin() ? 'No tracks yet.' : 'No songs yet. Tap “Add songs”.'}</li>` : S.tracks.map((t, i) => {
+    const url = t.icon ? (t.icon.url || iconUrlFor(t.icon.mediaId)) : null;
+    const ico = url ? `<button class="ico" data-act="icon" data-i="${i}" title="Change picture"><img src="${esc(url)}" alt="" onerror="this.replaceWith(document.createTextNode('?'))"></button>`
+                    : `<button class="ico none" data-act="icon" data-i="${i}" title="Pick picture">pic</button>`;
+    const st = t.status || (t.file ? fmtSize(t.file.size) : fmtDur(t.meta && t.meta.duration));
+    const end = `<select data-end="${i}" title="When this track ends">${[['', '→ next'], ['stop', '⏹ stop'], ['repeat', '🔁 repeat']]
+      .map(([v, l]) => `<option value="${v}"${(t.onEnd || '') === v ? ' selected' : ''}>${l}</option>`).join('')}</select>`;
+    return `<li><span class="n">${i + 1}</span>${ico}<input type="text" data-i="${i}" value="${esc(t.title)}">${end}<span class="st">${esc(st)}</span>
+      <button class="b s" data-act="up" data-i="${i}" ${i === 0 ? 'disabled' : ''}>↑</button>
+      <button class="b s" data-act="down" data-i="${i}" ${i === S.tracks.length - 1 ? 'disabled' : ''}>↓</button>
+      <button class="b s" data-act="del" data-i="${i}">✕</button></li>`;
+  }).join('');
+  $$('.tracklist').forEach(ul => ul.innerHTML = html);
+}
+async function addFiles(files) {
+  files = [...files];
+  for (const z of files.filter(f => /\.zip$/i.test(f.name) || f.type === 'application/zip')) {
+    try { await importKit(z); } catch (e) { toast('Could not open ' + z.name + ': ' + e.message, 6000); }
+  }
+  const ok = files.filter(f => /^audio\//.test(f.type) || AUDIO_RE.test(f.name));
+  ok.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+  for (const f of ok) S.tracks.push({ uid: uidSeq++, title: titleFromFile(f.name), file: f, trackUrl: null, meta: {}, icon: null, onEnd: '', raw: null, status: '' });
+  if (!S.tracks.length) { toast('No songs found in what you picked'); return; }
+  if (!S.title && ok.length === 1 && files.length === 1) setTitle(titleFromFile(ok[0].name));
+  renderTracks();
+  try { await loadPublicIcons(); autoMatch(true); } catch {}
+}
+async function importKit(file) {
+  if (!window.JSZip) throw new Error('zip support didn’t load (check the internet connection)');
+  const zip = await JSZip.loadAsync(file);
+  const names = Object.keys(zip.files).filter(n => !zip.files[n].dir);
+  let manifest = null;
+  const mf = names.find(n => /(^|\/)kit\.json$/i.test(n));
+  if (mf) { try { manifest = JSON.parse(await zip.file(mf).async('string')); } catch { toast('kit.json unreadable, ignored'); } }
+  const plan = planKit(names, manifest, file.name);
+  if (!plan.tracks.length) throw new Error('no songs inside');
+  const mk = async (n, type) => new File([await zip.file(n).async('blob')], baseName(n), { type });
+  for (const t of plan.tracks) {
+    const tr = { uid: uidSeq++, title: t.title, file: await mk(t.audio, audioType({ name: t.audio, type: '' })), trackUrl: null, meta: {}, icon: null, onEnd: '', raw: null, status: '' };
+    if (t.iconMediaId) tr.icon = { mediaId: t.iconMediaId, url: null };
+    else if (t.iconName) { tr.iconFile = await mk(t.iconName, imgType(t.iconName)); tr.icon = { mediaId: null, url: URL.createObjectURL(tr.iconFile), pending: true }; }
+    S.tracks.push(tr);
+  }
+  if (plan.cover) { const c = await mk(plan.cover, imgType(plan.cover)); S.cover = { file: c, url: null, preview: URL.createObjectURL(c) }; showCover(); }
+  if (!S.title && plan.title) setTitle(plan.title);
+  if (manifest) { S.shuffle = plan.shuffle; S.fromStart = plan.fromStart; setOpts(); }
+}
+function autoMatch(onlyEmpty) {
+  if (!S.publicIcons) return 0;
+  let n = 0;
+  const used = new Set(onlyEmpty ? S.tracks.filter(t => t.icon && t.icon.mediaId).map(t => t.icon.mediaId) : []);
+  for (const t of S.tracks) {
+    if (t.icon && (onlyEmpty || t.icon.pending)) continue;
+    const cands = matchIcons(t.title, S.publicIcons, 8);
+    const m = cands.find(c => !used.has(c.mediaId)) || cands[0];
+    if (m) { t.icon = { mediaId: m.mediaId, url: m.url }; used.add(m.mediaId); n++; }
+  }
+  renderTracks(); return n;
+}
+async function loadPlaylists() {
+  if (!isSignedIn()) { renderSimpleCards(); return; }
+  try {
+    const d = await api('/content/mine');
+    S.playlists = (d.cards || []).map(c => ({ cardId: c.cardId, title: c.title || c.cardId, mine: !!(c.metadata && c.metadata.note === MARK) }));
+    const sel = $('#selPlaylist'), cur = S.cardId || '';
+    sel.innerHTML = '<option value="">➕ New playlist</option>' + S.playlists.map(p => `<option value="${esc(p.cardId)}">${esc(p.title)} (${esc(p.cardId)})</option>`).join('');
+    sel.value = cur; renderLibrary(); renderSimpleCards();
+  } catch (e) { toast(e.message, 6000); }
+}
+async function openPlaylist(cardId) {
+  if (!cardId) { newPlaylist(); return true; }
+  try {
+    const d = await api('/content/' + encodeURIComponent(cardId));
+    const card = d.card || d;
+    S.cardId = cardId; S.base = card; setTitle(card.title || '');
+    const img = card.metadata && card.metadata.cover && card.metadata.cover.imageL;
+    S.cover = { file: null, url: img || null, preview: img || null };
+    S.tracks = parseCard(card);
+    const cfg = (card.content && card.content.config) || {};
+    S.shuffle = Array.isArray(cfg.shuffle) && cfg.shuffle.length > 0; S.fromStart = cfg.resumeTimeout === 0; setOpts();
+    $('#selPlaylist').value = cardId;
+    showCover(); renderTracks();
+    loadMyIcons().then(renderTracks);
+    return true;
+  } catch (e) { toast(e.message, 6000); return false; }
+}
+function newPlaylist() {
+  S.cardId = null; S.base = null; S.tracks = []; S.shuffle = S.fromStart = false; setOpts(); setTitle('');
+  S.cover = { file: null, url: null, preview: null }; $('#selPlaylist').value = ''; showCover(); renderTracks();
+}
+function showCover() { const p = $('#coverPrev'); if (S.cover.preview) { p.src = S.cover.preview; p.style.visibility = 'visible'; } else { p.removeAttribute('src'); p.style.visibility = 'hidden'; } }
+
+async function uploadAudio(t) {
+  const u = await api('/media/transcode/audio/uploadUrl');
+  const { uploadUrl, uploadId } = u.upload || {};
+  if (!uploadUrl) throw new Error('No upload URL returned');
+  t.status = 'uploading…'; renderTracks();
+  const put = await fetch(uploadUrl, { method: 'PUT', body: t.file, headers: { 'Content-Type': audioType(t.file) } });
+  if (!put.ok) throw new Error('Audio upload failed (' + put.status + ')');
+  t.status = 'processing…'; renderTracks();
+  const t0 = Date.now(); let delay = 1000, lastErr = '';
+  while (Date.now() - t0 < 10 * 60 * 1000) {
+    await sleep(delay); delay = Math.min(delay * 1.3, 5000);
+    const r = await fetch(`${API}/media/upload/${encodeURIComponent(uploadId)}/transcoded?loudnorm=false`, { headers: { Authorization: 'Bearer ' + await accessToken(), Accept: 'application/json' } });
+    if (r.ok) { const d = await r.json(); if (d.transcode && d.transcode.transcodedSha256) return d.transcode; }
+    else lastErr = r.status;
+  }
+  throw new Error('Processing timed out' + (lastErr ? ' (last status ' + lastErr + ')' : ''));
+}
+async function uploadIconFile(file) {
+  const name = file.name.replace(/\.[^.]+$/, '').slice(0, 40) || 'icon';
+  const d = await api(`/media/displayIcons/user/me/upload?autoConvert=true&filename=${encodeURIComponent(name)}`, { method: 'POST', body: file, headers: { 'Content-Type': file.type || 'image/png' } });
+  const di = d.displayIcon || {}; if (!di.mediaId) throw new Error('Icon upload returned no mediaId');
+  S.myIcons = null;
+  return { mediaId: di.mediaId, url: di.url || null };
+}
+
+let saving = false;
+function progress(frac, text) {
+  $('#sProgress').hidden = false; $('#sBar').style.width = Math.round(frac * 100) + '%';
+  if (text != null) $('#sProgText').textContent = text;
+  if (text) log(text);
+}
+async function save() {
+  if (saving) return false;
+  if (!isSignedIn()) { isAdmin() ? toast('Sign in first') : go('signin'); return false; }
+  setTitle(S.title.trim());
+  if (!S.title) { toast(isAdmin() ? 'Give the playlist a title' : 'Please give the card a name'); $$('.titlein').forEach(i => i.offsetParent && i.focus()); return false; }
+  if (!S.tracks.length) { toast(isAdmin() ? 'Add at least one track' : 'Please add some songs first'); return false; }
+  if (S.tracks.length > 100 && !confirm(`${S.tracks.length} songs. A card holds up to about 100. Save anyway?`)) return false;
+  const ids = S.tracks.map(t => (t.icon && t.icon.mediaId) || 'x' + t.uid);
+  if (S.shuffle && ids.length - new Set(ids).size) toast('Heads-up: some songs share a picture. With random order, the picture is how kids tell songs apart.', 6000);
+  saving = true; $('#btnSave').disabled = $('#sSave').disabled = true; $('#log').textContent = '';
+  const uploads = S.tracks.filter(t => t.file).length + S.tracks.filter(t => t.iconFile).length + (S.cover.file ? 1 : 0);
+  let done = 0; const step = txt => progress(uploads ? done / (uploads + 1) : 0.5, txt);
+  try {
+    if (S.cover.file) {
+      step('Uploading the cover picture…');
+      const d = await api('/media/coverImage/user/me/upload?autoconvert=true&coverType=default', { method: 'POST', body: S.cover.file, headers: { 'Content-Type': S.cover.file.type || 'image/jpeg' } });
+      S.cover.url = d.coverImage && d.coverImage.mediaUrl; S.cover.file = null; done++;
+    }
+    for (const t of S.tracks) {
+      if (!t.iconFile) continue;
+      step(`Uploading picture for “${t.title}”…`);
+      const ic = await uploadIconFile(t.iconFile);
+      t.icon = { mediaId: ic.mediaId, url: ic.url || (t.icon && t.icon.url) }; t.iconFile = null; done++;
+    }
+    for (const [i, t] of S.tracks.entries()) {
+      if (!t.file) continue;
+      step(`Uploading song ${i + 1} of ${S.tracks.length}: “${t.title}”…`);
+      const tr = await uploadAudio(t);
+      const info = tr.transcodedInfo || {};
+      t.trackUrl = 'yoto:#' + tr.transcodedSha256; t.type = 'audio';
+      t.meta = { duration: info.duration, fileSize: info.fileSize, format: info.format, channels: info.channels };
+      t.file = null; t.status = '✓'; done++; renderTracks();
+    }
+    progress(uploads ? done / (uploads + 1) : 0.8, 'Saving the card…');
+    const res = await api('/content', { method: 'POST', json: buildContent(S) });
+    const card = (res && (res.card || res)) || {};
+    if (card.cardId) S.cardId = card.cardId;
+    progress(1, '✓ Saved');
+    S.lastTitle = S.title;
+    S.tracks.forEach(t => { if (t.status === '✓') t.status = ''; }); renderTracks();
+    await loadPlaylists(); $('#selPlaylist').value = S.cardId || '';
+    if (isAdmin()) toast('Saved. Next: link it to the MYO card in the Yoto app, then go to tab 2.', 7000);
+    return true;
+  } catch (e) {
+    log('✗ ' + e.message);
+    $('#sProgText').innerHTML = `<span class="bad">Something went wrong: ${esc(e.message)}</span><br>Tap “Save card” to try again. If it keeps happening, ask ${esc(CONFIG.helperName)}.`;
+    toast(isAdmin() ? e.message : 'Saving failed. Please try again.', 8000);
+    return false;
+  } finally { saving = false; $('#btnSave').disabled = $('#sSave').disabled = false; }
+}
+
+/* ================= icon picker ================= */
+async function openPicker(i) {
+  S.pickerFor = i; const t = S.tracks[i];
+  $('#icoSearch').value = ''; $('#icoGrid').innerHTML = ''; $('#icoHint').textContent = 'Loading pictures…';
+  $('#dlgIcon').showModal();
+  try { await Promise.all([loadPublicIcons(), loadMyIcons()]); } catch (e) { $('#icoHint').textContent = e.message; return; }
+  renderPicker(t.title, true);
+}
+function renderPicker(q, fromTitle) {
+  const pub = S.publicIcons || [], mine = S.myIcons || [];
+  let list = q ? matchIcons(q, pub, 60) : [];
+  let hint;
+  if (q && list.length) hint = fromTitle ? `Suggestions for “${q}”. You can also search above.` : `${list.length} matches`;
+  else if (q) hint = `Nothing found for “${q}”. Try a simple English word (cat, moon, car) or pick from below.`;
+  if (!list.length) list = pub.slice(0, 60);
+  const cell = i => `<button data-mid="${esc(i.mediaId)}" data-url="${esc(i.url || '')}"><img src="${esc(i.url || PUBLIC_ICON_URL(i.mediaId))}" alt="" loading="lazy">${esc((i.title || '').slice(0, 18))}</button>`;
+  $('#icoHint').textContent = hint || `${pub.length} pictures`;
+  const w = words(q)[0];
+  $('#icoYi').href = 'https://www.yotoicons.com/icons' + (w ? '?category=&tag=' + encodeURIComponent(w) : '');
+  $('#icoGrid').innerHTML = (mine.length && !q ? mine.map(cell).join('') : '') + list.map(cell).join('');
+}
+
+/* ================= NFC: shared ================= */
+const hasNfc = 'NDEFReader' in window;
+let nfcCtrl = null;
+function nfcStop() { if (nfcCtrl) { nfcCtrl.abort(); nfcCtrl = null; } }
+function recordsSummary(msg) {
+  return (msg.records || []).map(r => {
+    let text = null;
+    if (r.data && (r.recordType === 'url' || r.recordType === 'absolute-url' || r.recordType === 'text')) { try { text = new TextDecoder(r.encoding || 'utf-8').decode(r.data); } catch {} }
+    return { type: r.recordType, text };
+  });
+}
+function urlFromMessage(msg) { const r = recordsSummary(msg).find(x => (x.type === 'url' || x.type === 'absolute-url') && x.text); return r ? r.text : null; }
+function nfcErr(e, simple) {
+  const n = e && e.name;
+  if (n === 'NotAllowedError') return simple ? 'The phone needs permission to use NFC. Tap “Allow” when Chrome asks.' : 'NFC permission denied, or the card already has data and overwrite is off.';
+  if (n === 'NotSupportedError') return simple ? `This card can’t be written. Use another blank card and give this one to ${CONFIG.helperName}.` : 'Card not NDEF-formatted. See “If writing fails”.';
+  if (n === 'NotReadableError') return simple ? 'NFC is off. Turn on NFC in the phone’s settings, then tap Start again.' : 'NFC is turned off or busy.';
+  if (n === 'NetworkError') return 'The card moved. Hold it still against the phone and try again.';
+  if (n === 'AbortError') return simple ? 'Stopped.' : 'Stopped / timed out.';
+  return (e && e.message) || String(e);
+}
+
+/* ================= NFC: simple copy wizard ================= */
+const C = { phase: 'idle', masterUrl: null, masterSerial: null, title: null, reader: null, ctrl: null, busy: false };
+const TARGET_MSG = {
+  'same-card': 'That’s the <b>orange Yoto card</b> 🙂<br>Now hold a <b>different, blank card</b> against the phone.',
+  'other-yoto': `This card already has other Yoto songs on it. To keep real Yoto cards safe, please use a <b>blank card</b>. (${CONFIG.helperName} can reset this one.)`,
+  'has-data': `This card has something else on it. Please use one of the <b>blank cards</b> from ${CONFIG.helperName}.`
+};
+function cSet(html, cls) { $('#cStatus').innerHTML = cls ? `<span class="${cls}">${html}</span>` : html; }
+function cPills() {
+  $('#cP1').className = 'pill ' + (C.phase === 'master' ? 'on' : C.masterUrl ? 'done' : '');
+  $('#cP2').className = 'pill ' + (C.phase === 'blank' ? 'on' : C.phase === 'done' ? 'done' : '');
+}
+function copyStop() { if (C.ctrl) { C.ctrl.abort(); C.ctrl = null; } }
+function openCopy() {
+  copyStop(); C.phase = 'idle'; C.masterUrl = C.masterSerial = C.title = null;
+  $('#cStart').hidden = false; $('#cAgain').hidden = $('#cTell').hidden = true;
+  if (!hasNfc) cSet(`This step is done on your <b>Android phone</b>.<br>Open <b>${esc(CONFIG.appTitle)}</b> from the phone’s home screen and tap “Copy onto a blank card”.`, 'warn');
+  else cSet('You’ll need the <b>orange Yoto card</b> (already linked in the Yoto app) and a <b>blank card</b>.<br>Tap <b>Start</b>.');
+  cPills(); go('copy');
+}
+async function copyStart(keepMaster) {
+  if (!hasNfc) return;
+  copyStop();
+  if (!keepMaster) { C.masterUrl = C.masterSerial = C.title = null; }
+  C.phase = C.masterUrl ? 'blank' : 'master'; C.busy = false;
+  const ctrl = new AbortController(); C.ctrl = ctrl;
+  const reader = new NDEFReader(); C.reader = reader;
+  reader.onreadingerror = () => cSet(`Couldn’t read that card. Hold it still and flat against the back of the phone.<br><small>If it keeps happening with a blank card, that card isn’t prepared. Give it to ${esc(CONFIG.helperName)}.</small>`, 'warn');
+  reader.onreading = ev => onCopyReading(ev).catch(e => { C.busy = false; cSet(esc(nfcErr(e, true)), 'bad'); copyStop(); $('#cStart').hidden = false; $('#cStart').textContent = '↻ Try again'; });
+  try { await reader.scan({ signal: ctrl.signal }); }
+  catch (e) { cSet(esc(nfcErr(e, true)), 'bad'); $('#cStart').hidden = false; return; }
+  $('#cStart').hidden = true; $('#cAgain').hidden = $('#cTell').hidden = true;
+  cSet(C.phase === 'master' ? '👉 Hold the <b>orange Yoto card</b> against the back of your phone.' : '👉 Now hold a <b>blank card</b> against the back of your phone.');
+  cPills();
+}
+async function onCopyReading(ev) {
+  if (C.busy || C.phase === 'done' || C.phase === 'idle') return;
+  const recs = recordsSummary(ev.message), serial = ev.serialNumber || '';
+  if (C.phase === 'master') {
+    const url = urlFromMessage(ev.message), p = url && parseYotoUrl(url);
+    if (!p) { cSet('This card has no Yoto songs yet.<br><small>First link the playlist to it in the Yoto app (Library → Playlists → your card → Link to a card), then hold it here again.</small>', 'warn'); return; }
+    C.masterUrl = url; C.masterSerial = serial;
+    const pl = S.playlists.find(x => x.cardId === p.cardId); C.title = pl ? pl.title : null;
+    C.phase = 'blank'; cPills();
+    cSet(`✓ Got the orange card${C.title ? ': “' + esc(C.title) + '”' : ''}.<br>👉 Now hold a <b>blank card</b> against the back of your phone.`, 'ok');
+    return;
+  }
+  if (C.phase === 'blank') {
+    const verdict = checkTarget({ serial, masterSerial: C.masterSerial, records: recs, masterUrl: C.masterUrl });
+    if (verdict !== 'ok') { cSet(TARGET_MSG[verdict], 'warn'); return; }
+    C.busy = true; cSet('Copying… keep holding the card still ✋');
+    await C.reader.write({ records: [{ recordType: 'url', data: C.masterUrl }] }, { overwrite: true, signal: C.ctrl.signal });
+    C.busy = false; C.phase = 'done'; copyStop(); cPills();
+    if (C.title) S.lastTitle = C.title;
+    cSet(`✓ Done! This card now has ${C.title ? '“' + esc(C.title) + '”' : 'the same songs'}.<small>Write the name on the card. Before the kids can play it, the parents need to play it once from their Yoto app. Tap “Tell the parents”.</small>`, 'ok');
+    $('#cAgain').hidden = $('#cTell').hidden = false;
+  }
+}
+
+/* ================= NFC: admin ================= */
+async function nfcReadOnce(statusEl) {
+  nfcStop(); const ctrl = new AbortController(); nfcCtrl = ctrl;
+  const reader = new NDEFReader();
+  return new Promise(async (resolve, reject) => {
+    const to = setTimeout(() => { ctrl.abort(); reject(Object.assign(new Error('timeout'), { name: 'AbortError' })); }, 45000);
+    reader.onreadingerror = () => { statusEl.innerHTML = '<span class="warn">Couldn’t read that card. Hold it flat on the back of the phone…</span>'; };
+    reader.onreading = ev => { clearTimeout(to); ctrl.abort(); nfcCtrl = null; resolve(ev); };
+    try { await reader.scan({ signal: ctrl.signal }); } catch (e) { clearTimeout(to); reject(e); }
+  });
+}
+async function readMyo() {
+  const st = $('#readStat');
+  if (!hasNfc) { st.innerHTML = '<span class="bad">Web NFC isn’t available here. Open this page in Chrome on Android.</span>'; return; }
+  st.textContent = 'Hold the MYO card against the back of your phone…';
+  try {
+    const ev = await nfcReadOnce(st);
+    const url = urlFromMessage(ev.message);
+    const p = url && parseYotoUrl(url);
+    if (!p) { st.innerHTML = `<span class="bad">That card has no Yoto link${url ? ' (found: ' + esc(maskUrl(url)) + ')' : ''}.</span>`; return; }
+    const pl = S.playlists.find(x => x.cardId === p.cardId);
+    const lib = LS.get('library', []);
+    const existing = lib.find(x => x.url === url);
+    if (!existing) lib.unshift({ id: Date.now(), url, cardId: p.cardId, label: pl ? pl.title : 'Card ' + p.cardId, savedAt: new Date().toISOString(), writes: 0 });
+    LS.set('library', lib); renderLibrary();
+    st.innerHTML = `<span class="ok">✓ Read ${esc(maskUrl(url))}</span> · serial <code>${esc(ev.serialNumber || '?')}</code><br><span class="small">${pl ? 'Playlist: <b>' + esc(pl.title) + '</b>' : '<span class="warn">Playlist not in your list (sign in to see names).</span>'}${existing ? ' · already in library' : ' · saved to library'}</span>`
+      + (p.hasToken ? '' : '<br><span class="warn small">This link has no token. Copies of it may not play.</span>');
+  } catch (e) { st.innerHTML = `<span class="bad">${esc(nfcErr(e))}</span>`; }
+}
+async function writeCard(id) {
+  const st = $('#writeStat');
+  if (!hasNfc) { st.innerHTML = '<span class="bad">Open this page in Chrome on Android to write cards.</span>'; return; }
+  const lib = LS.get('library', []); const item = lib.find(x => x.id === id); if (!item) return;
+  nfcStop(); const ctrl = new AbortController(); nfcCtrl = ctrl;
+  const to = setTimeout(() => ctrl.abort(), 45000);
+  st.innerHTML = `Hold the <b>blank</b> card against the phone to write “${esc(item.label)}”…`;
+  try {
+    await new NDEFReader().write({ records: [{ recordType: 'url', data: item.url }] }, { overwrite: $('#chkOverwrite').checked, signal: ctrl.signal });
+    item.writes = (item.writes || 0) + 1; LS.set('library', lib); renderLibrary();
+    st.innerHTML = `<span class="ok">✓ Written. Each player must download the playlist before this card plays.</span>`;
+  } catch (e) {
+    const already = e && e.name === 'NotAllowedError' && !$('#chkOverwrite').checked;
+    st.innerHTML = `<span class="bad">${esc(already ? 'That card already has data. Tick “Allow overwriting” only if you’re sure it isn’t a real Yoto card.' : nfcErr(e))}</span>`;
+  } finally { clearTimeout(to); nfcCtrl = null; }
+}
+function renderLibrary() {
+  const lib = LS.get('library', []); const ul = $('#libList');
+  if (!lib.length) { ul.innerHTML = '<li class="muted small">Nothing yet. Read a MYO card first.</li>'; return; }
+  ul.innerHTML = lib.map(x => {
+    const pl = S.playlists.find(p => p.cardId === x.cardId);
+    return `<li><div class="grow"><b>${esc(pl ? pl.title : x.label)}</b><br><span class="muted small">${esc(maskUrl(x.url))} · ${x.writes || 0} written · ${esc((x.savedAt || '').slice(0, 10))}</span></div>
+    <button class="b p s" data-w="${x.id}">✍️ Write to blank</button><button class="b s" data-rn="${x.id}">Rename</button><button class="b s" data-rm="${x.id}">✕</button></li>`;
+  }).join('');
+}
+let prepCount = 0;
+async function prepBlanks() {
+  const st = $('#prepStat');
+  if (!hasNfc) { st.innerHTML = '<span class="bad">Needs Chrome on Android.</span>'; return; }
+  nfcStop(); const ctrl = new AbortController(); nfcCtrl = ctrl; prepCount = 0;
+  const reader = new NDEFReader(); let busy = false; const seen = new Set();
+  reader.onreadingerror = () => { st.innerHTML = '<span class="bad">✗ Unreadable card. Format it in NFC Tools (command below), then tap it again.</span>'; };
+  reader.onreading = async ev => {
+    if (busy) return;
+    const recs = recordsSummary(ev.message);
+    const v = checkTarget({ serial: ev.serialNumber, masterSerial: null, records: recs, masterUrl: null });
+    if (v === 'other-yoto') { st.innerHTML = '<span class="warn">Skipped: that card has a Yoto link (a real card or an existing copy). To reuse a copy, write over it from the library with “Allow overwriting” ticked.</span>'; return; }
+    if (v === 'has-data') { st.innerHTML = '<span class="warn">Skipped: card has other data.</span>'; return; }
+    if (recs.length === 1 && recs[0].text === BLANK_MARK) { st.innerHTML = `<span class="ok">Already prepared ✓</span> (${prepCount} new this session). Next card…`; return; }
+    busy = true;
+    try {
+      await reader.write({ records: [{ recordType: 'text', data: BLANK_MARK }] }, { overwrite: true, signal: ctrl.signal });
+      if (!seen.has(ev.serialNumber)) { seen.add(ev.serialNumber); prepCount++; }
+      st.innerHTML = `<span class="ok">✓ Prepared ${prepCount}</span>. Remove it and tap the next blank…`;
+    } catch (e) { st.innerHTML = `<span class="bad">✗ ${esc(nfcErr(e))}</span>`; }
+    finally { busy = false; }
+  };
+  try { await reader.scan({ signal: ctrl.signal }); st.textContent = 'Tap blank cards one by one…'; }
+  catch (e) { st.innerHTML = `<span class="bad">${esc(nfcErr(e))}</span>`; }
+}
+
+/* ================= simple view navigation ================= */
+function go(name) {
+  $$('#simpleApp .scr').forEach(s => s.classList.toggle('on', s.id === 's-' + name));
+  if (name !== 'copy') copyStop();
+  window.scrollTo(0, 0);
+}
+function renderSimpleCards() {
+  const ul = $('#sCards');
+  if (!isSignedIn()) { ul.innerHTML = ''; $('#sHomeNote').textContent = hasNfc ? 'You don’t need to sign in to copy cards.' : 'Sign in happens when you make your first card.'; return; }
+  const marked = S.playlists.filter(p => p.mine);
+  const list = marked.length ? marked : S.playlists;
+  $('#sHomeNote').textContent = '';
+  ul.innerHTML = list.length ? list.map(p => `<li><span class="t">${esc(p.title)}</span>
+      <button class="b" data-edit="${esc(p.cardId)}">✏️ Add songs</button>
+      <button class="b" data-tell="${esc(p.cardId)}">💬 Tell parents</button></li>`).join('')
+    : '<li class="muted small">No cards yet.</li>';
+}
+function openTell(title) {
+  $('#tMsg').value = parentsMessage(title || S.lastTitle, CONFIG.fromName);
+  $('#tShare').hidden = !navigator.share;
+  go('tell');
+}
+
+/* ================= wiring ================= */
+function showTab(name) {
+  $$('nav button[data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
+  $$('main > section').forEach(s => s.classList.toggle('on', s.id === 'tab-' + name));
+  if (name !== 'nfc') nfcStop();
+}
+function refreshUI() {
+  const t = LS.get('tokens', null);
+  const p = t ? jwtPayload(t.access_token) : {};
+  $('#appTitle').textContent = CONFIG.appTitle; document.title = CONFIG.appTitle;
+  $('#who').textContent = isAdmin() ? (t ? (p.email || p.name || 'Signed in') : 'Not signed in') : '';
+  $('#btnAuth').textContent = t ? 'Sign out' : 'Sign in';
+  const b = $('#authBanner');
+  if (!t) { b.style.display = 'block'; b.innerHTML = clientId() ? 'Sign in to the Yoto account to create playlists.' : 'First time? Open <b>Setup</b> to connect your Yoto developer app.'; }
+  else b.style.display = 'none';
+  $('#redir').textContent = redirectUri();
+  $('#inClient').value = LS.get('clientId', '');
+  $('#sAccountHint').textContent = CONFIG.accountHint;
+  $('#sAppName2').textContent = CONFIG.appTitle;
+  const env = [];
+  env.push(CONFIG.clientId ? '<span class="ok">✓ Client ID built in (grandparent sees the simple view)</span>' : '<span class="warn">CONFIG.clientId is empty, so this page opens in admin view.</span>');
+  env.push(webOk() ? '<span class="ok">✓ Secure context (HTTPS/localhost)</span>' : '<span class="bad">✗ Not HTTPS. Sign-in and NFC won’t work here.</span>');
+  env.push(hasNfc ? '<span class="ok">✓ Web NFC available</span>' : '<span class="muted">Web NFC not available on this device (needs Chrome on Android).</span>');
+  $('#envCheck').innerHTML = env.join('<br>');
+  const nb = $('#nfcBanner');
+  if (!hasNfc) { nb.style.display = 'block'; nb.innerHTML = 'Writing cards needs <b>Chrome on Android</b>.'; }
+  renderLibrary(); renderSimpleCards();
+}
+
+// admin
+$$('nav button[data-tab]').forEach(b => b.onclick = () => showTab(b.dataset.tab));
+$('#btnSimpleView').onclick = () => { if (!CONFIG.clientId) { toast('Set CONFIG.clientId first; the simple view needs it'); return; } LS.set('admin', false); location.href = redirectUri(); };
+$('#btnAuth').onclick = () => isSignedIn() ? signOut() : signIn();
+$('#btnSaveClient').onclick = () => { LS.set('clientId', $('#inClient').value.trim()); toast('Client ID saved'); refreshUI(); };
+$('#btnCopyRedir').onclick = () => navigator.clipboard.writeText(redirectUri()).then(() => toast('Copied'), () => toast('Copy failed. Select the text manually.'));
+$('#btnForget').onclick = () => { LS.del('tokens'); refreshUI(); toast('Tokens cleared'); };
+$('#btnClearIcons').onclick = () => { LS.del('publicIcons'); S.publicIcons = null; toast('Icon cache cleared'); };
+$('#selPlaylist').onchange = e => openPlaylist(e.target.value);
+$('#btnReloadPl').onclick = loadPlaylists;
+$('#btnCover').onclick = () => $('#inCover').click();
+$('#inCover').onchange = e => { const f = e.target.files[0]; if (!f) return; S.cover = { file: f, url: null, preview: URL.createObjectURL(f) }; showCover(); e.target.value = ''; };
+$('#btnCoverClear').onclick = () => { S.cover = { file: null, url: null, preview: null, removed: true }; showCover(); };
+const drop = $('#drop');
+drop.onclick = e => { if (e.target === drop) $('#inAudio').click(); };
+$('#inAudio').onchange = e => { addFiles(e.target.files); e.target.value = ''; };
+drop.ondragover = e => { e.preventDefault(); drop.classList.add('hover'); };
+drop.ondragleave = () => drop.classList.remove('hover');
+drop.ondrop = e => { e.preventDefault(); drop.classList.remove('hover'); addFiles(e.dataTransfer.files); };
+$('#btnMatch').onclick = async () => {
+  if (!isSignedIn()) { toast('Sign in first'); return; }
+  if (!S.tracks.length) { toast('Add tracks first'); return; }
+  try { await loadPublicIcons(); const n = autoMatch(false); toast(`Matched ${n} of ${S.tracks.length}. Tap an icon to change it.`); } catch (e) { toast(e.message, 6000); }
+};
+$('#btnSave').onclick = save;
+$('#btnRead').onclick = readMyo;
+$('#btnStop').onclick = () => { nfcStop(); $('#readStat').textContent = 'Stopped.'; };
+$('#btnPrep').onclick = prepBlanks;
+$('#btnPrepStop').onclick = () => { nfcStop(); $('#prepStat').textContent = `Stopped. Prepared ${prepCount} this session.`; };
+$('#libList').onclick = e => {
+  const w = e.target.closest('[data-w]'), rm = e.target.closest('[data-rm]'), rn = e.target.closest('[data-rn]');
+  const lib = LS.get('library', []);
+  if (w) writeCard(+w.dataset.w);
+  if (rm && confirm('Remove this saved card link?')) { LS.set('library', lib.filter(x => x.id !== +rm.dataset.rm)); renderLibrary(); }
+  if (rn) { const it = lib.find(x => x.id === +rn.dataset.rn); const v = it && prompt('Name', it.label); if (v) { it.label = v; LS.set('library', lib); renderLibrary(); } }
+};
+
+// shared: titles, options, track lists
+$$('.titlein').forEach(i => i.oninput = e => setTitle(e.target.value));
+$$('.opt-shuffle').forEach(c => c.onchange = e => { S.shuffle = e.target.checked; setOpts(); });
+$$('.opt-start').forEach(c => c.onchange = e => { S.fromStart = e.target.checked; setOpts(); });
+$$('.tracklist').forEach(ul => {
+  ul.addEventListener('input', e => { const i = +e.target.dataset.i; if (e.target.tagName === 'INPUT' && S.tracks[i]) S.tracks[i].title = e.target.value; });
+  ul.addEventListener('change', e => { const i = e.target.dataset.end; if (i != null && S.tracks[+i]) S.tracks[+i].onEnd = e.target.value; });
+  ul.addEventListener('click', e => {
+    const b = e.target.closest('button[data-act]'); if (!b) return;
+    const i = +b.dataset.i, a = b.dataset.act;
+    if (a === 'up' && i > 0) [S.tracks[i - 1], S.tracks[i]] = [S.tracks[i], S.tracks[i - 1]];
+    if (a === 'down' && i < S.tracks.length - 1) [S.tracks[i + 1], S.tracks[i]] = [S.tracks[i], S.tracks[i + 1]];
+    if (a === 'del') S.tracks.splice(i, 1);
+    if (a === 'icon') { if (!isSignedIn()) { toast('Sign in first'); return; } openPicker(i); return; }
+    renderTracks();
+  });
+});
+
+// icon picker
+$('#icoClose').onclick = () => $('#dlgIcon').close();
+let searchT; $('#icoSearch').oninput = e => { clearTimeout(searchT); searchT = setTimeout(() => renderPicker(e.target.value.trim(), false), 150); };
+$('#icoGrid').onclick = e => {
+  const b = e.target.closest('button[data-mid]'); if (!b) return;
+  const t = S.tracks[S.pickerFor]; if (t) { t.icon = { mediaId: b.dataset.mid, url: b.dataset.url || null }; t.iconFile = null; }
+  $('#dlgIcon').close(); renderTracks();
+};
+$('#icoUpload').onclick = () => $('#icoFile').click();
+$('#icoFile').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  $('#icoHint').textContent = 'Uploading… Yoto turns it into a 16×16 pixel picture';
+  try { const ic = await uploadIconFile(f); const t = S.tracks[S.pickerFor]; if (t) { t.icon = { mediaId: ic.mediaId, url: ic.url || URL.createObjectURL(f) }; t.iconFile = null; } $('#dlgIcon').close(); renderTracks(); toast('Picture added'); }
+  catch (err) { $('#icoHint').textContent = err.message; }
+};
+
+// simple view
+$$('[data-go]').forEach(b => b.onclick = () => go(b.dataset.go));
+$('#sNew').onclick = () => { if (!isSignedIn()) { go('signin'); return; } newPlaylist(); $('#sProgress').hidden = true; go('build'); };
+$('#sSignIn').onclick = signIn;
+$('#sCopyGo').onclick = openCopy;
+$('#sAdd').onclick = () => $('#sFiles').click();
+$('#sFiles').onchange = async e => { const f = [...e.target.files]; e.target.value = ''; await addFiles(f); };
+$('#sSave').onclick = async () => { if (await save()) { $$('.sT').forEach(x => x.textContent = S.title); go('saved'); } };
+$('#sSavedCopy').onclick = openCopy;
+$('#cStart').onclick = () => copyStart(false);
+$('#cAgain').onclick = () => copyStart(true);
+$('#cTell').onclick = () => openTell(C.title);
+$('#cBack').onclick = () => { copyStop(); go('home'); };
+$('#sCards').onclick = async e => {
+  const ed = e.target.closest('[data-edit]'), tl = e.target.closest('[data-tell]');
+  if (ed) { $('#sProgress').hidden = true; if (await openPlaylist(ed.dataset.edit)) go('build'); }
+  if (tl) { const p = S.playlists.find(x => x.cardId === tl.dataset.tell); openTell(p && p.title); }
+};
+$('#tWa').onclick = () => { const phone = String(CONFIG.parentsPhone || '').replace(/\D/g, ''); window.open(`https://wa.me/${phone}?text=${encodeURIComponent($('#tMsg').value)}`, '_blank', 'noopener'); };
+$('#tShare').onclick = () => navigator.share({ text: $('#tMsg').value }).catch(() => {});
+$('#tCopy').onclick = () => navigator.clipboard.writeText($('#tMsg').value).then(() => toast('Copied ✓'), () => toast('Couldn’t copy. Select the text and copy it.'));
+
+(async function init() {
+  await handleCallback();
+  refreshUI(); renderTracks(); showCover();
+  if (isSignedIn()) { loadPlaylists(); loadPublicIcons().catch(() => {}); }
+})();
+</script>
+</body>
+</html>
